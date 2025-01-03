@@ -1,0 +1,8 @@
+name: Workbench Ingest
+type: module
+description: Provides a simple form for ingest with Islandora Workbench
+package: custom
+core_version_requirement: ^10
+dependencies:
+  - drupal:block
+  - mjordan:islandora_workbench_integration

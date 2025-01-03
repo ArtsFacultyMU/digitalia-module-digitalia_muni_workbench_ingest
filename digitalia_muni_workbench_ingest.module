@@ -1,0 +1,27 @@
+<?php
+
+use Drupal\Core\Form\FormStateInterface;
+
+//function test(array $form, FormStateInterface &$form_state)
+//{
+//	\Drupal::logger("DEBUG_INGEST")->debug("CHECK");
+//	//$output = array();
+//	$output = "";
+//	$retval = null;
+//	//$command = "echo TEST";
+//	//$command = "/home/islandora/islandora_workbench/workbench";
+//	//$command = "id";
+//	//$command = "ls -lah /home/islandora/islandora_workbench";
+//	//$command = "python3 /home/islandora/islandora_workbench/setup.py install --user";
+//	//$command = "/home/islandora/islandora_workbench/workbench --config /var/www/html/drupal/web/sites/default/files/workbench/workbench_conf.yml --check";
+//	$command = "sudo -u islandora /home/islandora/bin/islandora_workbench_test.sh";
+//	//$command = "python3 --version";
+//
+//	$ret = exec($command, $output, $retval);
+//	//$output = system($command, $retval);
+//	//$output = shell_exec($command);
+//	\Drupal::logger("DEBUG_INGEST")->debug("{$ret}");
+//	\Drupal::logger("DEBUG_INGEST")->debug("{$command}: retval = {$retval}\n" . print_r($output, TRUE));
+//	return $form;
+//}
+//

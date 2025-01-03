@@ -1,0 +1,7 @@
+digitalia_muni_workbench_ingest.settings:
+  path: '/admin/config/system/digitalia_muni_workbench_ingest'
+  defaults:
+    _form: '\Drupal\digitalia_muni_workbench_ingest\Form\ModuleConfigurationForm'
+    _title: 'Workbench Ingest Settings'
+  requirements:
+    _permission: 'administer site configuration'

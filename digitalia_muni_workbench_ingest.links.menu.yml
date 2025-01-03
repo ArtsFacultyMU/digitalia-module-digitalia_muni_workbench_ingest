@@ -1,0 +1,5 @@
+digitalia_muni_workbench_ingest.config:
+  title: "Workbench Ingest Settings"
+  description: "Configure Workbench"
+  route_name: digitalia_muni_workbench_ingest.settings
+  parent: system.admin_config_development

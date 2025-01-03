@@ -1,6 +1,7 @@
 name: Workbench Ingest
 type: module
 description: Provides a simple form for ingest with Islandora Workbench
+configure: digitalia_muni_workbench_ingest.settings
 package: custom
 core_version_requirement: ^10
 dependencies:

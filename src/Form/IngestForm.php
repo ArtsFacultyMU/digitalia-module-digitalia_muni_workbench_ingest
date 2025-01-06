@@ -6,8 +6,6 @@ use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
 use Drupal\node\Entity\Node;
 use Drupal\media\Entity\Media;
-use Drupal\Core\File\FileSystemInterface;
-use Drupal\Core\File\FileSystem;
 use Drupal\Core\Messenger\MessengerInterface;
 
 class IngestForm extends FormBase
@@ -19,7 +17,6 @@ class IngestForm extends FormBase
 	{
 		return 'digitalia_muni_workbench_ingest_form';
 	}
-
 
 	/**
 	 * {@inheritdoc}
@@ -46,9 +43,10 @@ class IngestForm extends FormBase
 			],
 		];
 
+		// Dummy output
 		$form['output'] = [
 			'#type' => 'markup',
-			'#markup' => '<div id="edit-output">Config not checked</div>',
+			'#markup' => '<div id="edit-output"></div>',
 		];
 
 
@@ -71,17 +69,13 @@ class IngestForm extends FormBase
 	public function submitForm(array &$form, FormStateInterface $form_state)
 	{
 		$retval = $this->workbenchWrapper($form_state, false, $ret);
-		$message = "Ingest successful. Refresh page to see results.";
-		$message_type = MessengerInterface::TYPE_STATUS;
-		if ($retval != 0) {
-			$message = "Ingest failed. Have you checked config beforehand?";
-			$message_type = MessengerInterface::TYPE_ERROR;
-			\Drupal::logger("DEBUG_INGEST")->debug("INGEST FAILED");
-		}
-		\Drupal::messenger()->addMessage($message, $message_type);
 
-		\Drupal::logger("DEBUG_INGEST")->debug("INGEST SUCCESSFUL");
-		//$check_result = "<div id='edit-output'>Ingest completed</div>";
+		if ($retval == 0) {
+			\Drupal::messenger()->addStatus("Ingest successful!");
+		} else {
+			\Drupal::messenger()->addError($ret);
+		}
+
 		$check_result = "<div id='edit-output'></div>";
 
 		return ['#markup' => $check_result];
@@ -89,9 +83,6 @@ class IngestForm extends FormBase
 
 	public function workbenchCheckCallback(array &$form, FormStateInterface $form_state)
 	{
-		\Drupal::logger("DEBUG_INGEST")->debug("CHECK");
-
-		$ret = "";
 		$retval = $this->workbenchWrapper($form_state, true, $ret);
 
 		if ($retval == 0) {
@@ -100,15 +91,8 @@ class IngestForm extends FormBase
 			\Drupal::messenger()->addError($ret);
 		}
 
-		//$check_result = "<div id='edit-output'>{$ret}</div>";
-		$check_result = "<div id='edit-output'>Config checked</div>";
-		//if ($retval == 0) {
-		//	$form['actions']['ingest'] = [
-		//		'#disabled' => false,
-		//	];
-		//}
+		$check_result = "<div id='edit-output'></div>";
 
-		//return $form;
 		return ['#markup' => $check_result];
 	}
 
@@ -128,8 +112,6 @@ class IngestForm extends FormBase
 		$executable = $config->get('workbench_executable');
 
 		$yaml_lines = file($workbench_config);
-		\Drupal::logger("DEBUG_INGEST")->debug(print_r($yaml_lines, TRUE));
-
 		
 		$start = -1;
 		for ($i = 0; $i < count($yaml_lines); $i += 1) {
@@ -139,16 +121,11 @@ class IngestForm extends FormBase
 			}
 		}
 
-		$node_id = null;
-		$user_id = null;
 		$node_id = \Drupal::routeMatch()->getParameter("node")->id();
 		$user_id = \Drupal::currentUser()->id();
-		\Drupal::logger("DEBUG_INGEST")->debug("NODE ID: {$node_id}");
-
-		//$node_id = "";
 
 		if (!$node_id) {
-			\Drupal::logger("DEBUG_INGEST")->error("Invalid node id, aborting.");
+			\Drupal::logger("Digitalia workbench")->error("Invalid node id, aborting.");
 			\Drupal::messenger->addError("Invalid node id, aborting. Please contact administrators.");
 			return 1;
 		}
@@ -157,7 +134,6 @@ class IngestForm extends FormBase
 			array_splice($yaml_lines, $start + 1, 0, array(" - parent_id: {$node_id}\n"));
 			array_splice($yaml_lines, $start + 1, 0, array(" - field_member_of: {$node_id}\n"));
 			array_splice($yaml_lines, $start + 1, 0, array(" - uid: {$user_id}\n"));
-			\Drupal::logger("DEBUG_INGEST")->debug(print_r($yaml_lines, TRUE));
 		} else {
 			array_push($yaml_lines, "csv_field_templates:\n");
 			array_push($yaml_lines, " - parent_id: {$node_id}\n");
@@ -169,6 +145,7 @@ class IngestForm extends FormBase
 	
 		$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TEST_");
 		$temp_file = fopen($temp_filename, "w");
+
 		foreach($yaml_lines as $line) {
 			fwrite($temp_file, $line);
 		}
@@ -179,7 +156,7 @@ class IngestForm extends FormBase
 		return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
 	}
 
-	private function workbenchStart($user, $executable, $workbench_config, &$ret, $check_only)
+	private function workbenchStart($user, $executable, $config, &$ret, $check_only)
 	{
 		$output = array();
 		$retval = null;
@@ -188,11 +165,9 @@ class IngestForm extends FormBase
 			$check = "--check";
 		}
 
-		$command = "sudo -u {$user} {$executable} --config {$workbench_config} {$check} 2>&1";
+		$command = "sudo -u {$user} {$executable} --config {$config} {$check} 2>&1";
 	
 		$ret = exec($command, $output, $retval);
-		\Drupal::logger("DEBUG_INGEST")->debug("{$ret}");
-		\Drupal::logger("DEBUG_INGEST")->debug("{$command}: retval = {$retval}\n" . print_r($output, TRUE));
 
 		return $retval;
 	}

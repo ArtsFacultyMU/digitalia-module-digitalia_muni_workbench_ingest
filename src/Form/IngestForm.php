@@ -8,6 +8,7 @@ use Drupal\node\Entity\Node;
 use Drupal\media\Entity\Media;
 use Drupal\Core\File\FileSystemInterface;
 use Drupal\Core\File\FileSystem;
+use Drupal\Core\Messenger\MessengerInterface;
 
 class IngestForm extends FormBase
 {
@@ -53,7 +54,6 @@ class IngestForm extends FormBase
 
 		$config_files = $config->get('config_files');
 		$exploded = explode("\r\n", $config_files);
-		//dpm(print_r($exploded, TRUE));
 
 		if (count($exploded) > 1) {
 			$form['config'] = [
@@ -63,7 +63,6 @@ class IngestForm extends FormBase
 			];
 		}
 		
-
 		return $form;
 	}
 
@@ -73,13 +72,17 @@ class IngestForm extends FormBase
 	{
 		$retval = $this->workbenchWrapper($form_state, false, $ret);
 		$message = "Ingest successful. Refresh page to see results.";
+		$message_type = MessengerInterface::TYPE_STATUS;
 		if ($retval != 0) {
 			$message = "Ingest failed. Have you checked config beforehand?";
+			$message_type = MessengerInterface::TYPE_ERROR;
 			\Drupal::logger("DEBUG_INGEST")->debug("INGEST FAILED");
 		}
+		\Drupal::messenger()->addMessage($message, $message_type);
 
 		\Drupal::logger("DEBUG_INGEST")->debug("INGEST SUCCESSFUL");
-		$check_result = "<div id='edit-output'>{$message}</div>";
+		//$check_result = "<div id='edit-output'>Ingest completed</div>";
+		$check_result = "<div id='edit-output'></div>";
 
 		return ['#markup' => $check_result];
 	}
@@ -91,13 +94,21 @@ class IngestForm extends FormBase
 		$ret = "";
 		$retval = $this->workbenchWrapper($form_state, true, $ret);
 
-		$check_result = "<div id='edit-output'>{$ret}</div>";
 		if ($retval == 0) {
-			$form['actions']['ingest'] = [
-				'#disabled' => false,
-			];
+			\Drupal::messenger()->addStatus($ret);
+		} else {
+			\Drupal::messenger()->addError($ret);
 		}
 
+		//$check_result = "<div id='edit-output'>{$ret}</div>";
+		$check_result = "<div id='edit-output'>Config checked</div>";
+		//if ($retval == 0) {
+		//	$form['actions']['ingest'] = [
+		//		'#disabled' => false,
+		//	];
+		//}
+
+		//return $form;
 		return ['#markup' => $check_result];
 	}
 
@@ -128,13 +139,31 @@ class IngestForm extends FormBase
 			}
 		}
 
-		if ($start != -1) {
-			array_splice($yaml_lines, $start + 1, 0, array(" - parent_id: 19\n"));
-			array_splice($yaml_lines, $start + 1, 0, array(" - field_member_of: 19\n"));
-			\Drupal::logger("DEBUG_INGEST")->debug(print_r($yaml_lines, TRUE));
+		$node_id = null;
+		$user_id = null;
+		$node_id = \Drupal::routeMatch()->getParameter("node")->id();
+		$user_id = \Drupal::currentUser()->id();
+		\Drupal::logger("DEBUG_INGEST")->debug("NODE ID: {$node_id}");
+
+		//$node_id = "";
+
+		if (!$node_id) {
+			\Drupal::logger("DEBUG_INGEST")->error("Invalid node id, aborting.");
+			\Drupal::messenger->addError("Invalid node id, aborting. Please contact administrators.");
+			return 1;
 		}
 
-		dpm($start);
+		if ($start != -1) {
+			array_splice($yaml_lines, $start + 1, 0, array(" - parent_id: {$node_id}\n"));
+			array_splice($yaml_lines, $start + 1, 0, array(" - field_member_of: {$node_id}\n"));
+			array_splice($yaml_lines, $start + 1, 0, array(" - uid: {$user_id}\n"));
+			\Drupal::logger("DEBUG_INGEST")->debug(print_r($yaml_lines, TRUE));
+		} else {
+			array_push($yaml_lines, "csv_field_templates:\n");
+			array_push($yaml_lines, " - parent_id: {$node_id}\n");
+			array_push($yaml_lines, " - field_member_of: {$node_id}\n");
+			array_push($yaml_lines, " - uid: {$user_id}\n");
+		}
 
 		$filesystem = \Drupal::service('file_system');
 	
@@ -143,8 +172,6 @@ class IngestForm extends FormBase
 		foreach($yaml_lines as $line) {
 			fwrite($temp_file, $line);
 		}
-
-		dpm($temp_filename);
 
 		chmod($temp_filename, 0644);
 
@@ -161,7 +188,7 @@ class IngestForm extends FormBase
 			$check = "--check";
 		}
 
-		$command = "sudo -u {$user} {$executable} --config {$workbench_config} {$check}";
+		$command = "sudo -u {$user} {$executable} --config {$workbench_config} {$check} 2>&1";
 	
 		$ret = exec($command, $output, $retval);
 		\Drupal::logger("DEBUG_INGEST")->debug("{$ret}");

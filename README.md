@@ -14,6 +14,12 @@ Configuration is available at Configuration -> System -> Development -> Workbenc
 ### Workbench system user
 This user must be able to run workbench executable.
 
+### Workbench Drupal user
+Drupal user under which Workbench authenticates.
+
+### Workbench Drupal user password
+WARNING: create a key override for this field (using key with a File provider), otherwise the password WILL be written in plaintext after config  export.
+
 ### Path to workbench executable
 Absolute path to workbench executable.
 

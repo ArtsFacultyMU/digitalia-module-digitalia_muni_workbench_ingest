@@ -33,15 +33,27 @@ class ModuleConfigurationForm extends ConfigFormBase
 	 */
 	public function buildForm(array $form, FormStateInterface $form_state)
 	{
-                $config = $this->config("digitalia_muni_workbench_ingest.settings");
+		$config = $this->config("digitalia_muni_workbench_ingest.settings");
 
-		\Drupal::logger("DEBUG_INGEST_FORM")->debug("" . $config->get("test"));
-
-		$form["user"] = [
+		$form["system_user"] = [
 			"#type" => "textfield",
 			"#title" => $this->t("Workbench system user"),
 			"#description" => $this->t("The user under which command is executed (e.g. www-data) MUST be able to sudo to specified system user without password."),
-			"#default_value" => $config->get("user"),
+			"#default_value" => $config->get("system_user"),
+		];
+
+		$form["drupal_user"] = [
+			"#type" => "textfield",
+			"#title" => $this->t("Workbench Drupal user"),
+			//"#description" => $this->t("The user for"),
+			"#default_value" => $config->get("drupal_user"),
+		];
+
+		$form["drupal_password"] = [
+			"#type" => "password",
+			"#title" => $this->t("Workbench Drupal user password"),
+			//"#description" => $this->t("The user under which command is executed (e.g. www-data) MUST be able to sudo to specified system user without password."),
+			"#default_value" => $config->get("drupal_password"),
 		];
 
 		$form["workbench_executable"] = [

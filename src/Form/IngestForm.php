@@ -112,12 +112,20 @@ class IngestForm extends FormBase
 		$executable = $config->get('workbench_executable');
 
 		$yaml_lines = file($workbench_config);
+		$drupal_username = $config->get('drupal_user');
+		$drupal_password = $config->get('drupal_password');
 		
 		$start = -1;
 		for ($i = 0; $i < count($yaml_lines); $i += 1) {
 			if (str_starts_with($yaml_lines[$i], "csv_field_templates:")) {
 				$start = $i;
 				break;
+			}
+			if (str_starts_with($yaml_lines[$i], "username:")) {
+				$yaml_lines[$i] = "username: {$drupal_username}\n";	
+			}
+			if (str_starts_with($yaml_lines[$i], "password:")) {
+				$yaml_lines[$i] = "password: {$drupal_password}\n";	
 			}
 		}
 
@@ -150,8 +158,9 @@ class IngestForm extends FormBase
 			fwrite($temp_file, $line);
 		}
 
-		chmod($temp_filename, 0644);
+		//\Drupal::logger("DEBUG_WORKBENCH")->debug(print_r($yaml_lines, TRUE));
 
+		chmod($temp_filename, 0644);
 
 		return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
 	}

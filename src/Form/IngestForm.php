@@ -40,6 +40,12 @@ class IngestForm extends FormBase
 			'#ajax' => [
 				'callback' => '::submitForm',
 				'wrapper' => 'edit-output',
+				'progress' => [
+				  'type' => 'bar',
+				  'message' => 'Importing...',
+				  'url' => '/digitalia_muni_workbench_ingest/ingest_progress',
+				  'interval' => '1000',
+        ],
 			],
 		];
 
@@ -60,6 +66,18 @@ class IngestForm extends FormBase
 				'#options' => $exploded,
 			];
 		}
+
+		//$form['start_row'] = [
+		//	'#type' => 'textfield',
+		//	'#title' => 'Start row',
+		//	'#description' => 'Leave empty to ignore',
+		//];
+
+		//$form['stop_row'] = [
+		//	'#type' => 'textfield',
+		//	'#title' => 'Stop row',
+		//	'#description' => 'Leave empty to ignore',
+		//];
 		
 		return $form;
 	}
@@ -71,7 +89,7 @@ class IngestForm extends FormBase
 		$retval = $this->workbenchWrapper($form_state, false, $ret);
 
 		if ($retval == 0) {
-			\Drupal::messenger()->addStatus("Ingest successful!");
+			\Drupal::messenger()->addStatus("Ingest successful! Reload the page to see results.");
 		} else {
 			\Drupal::messenger()->addError($ret);
 		}
@@ -108,59 +126,53 @@ class IngestForm extends FormBase
 		}
 
 		$workbench_config = explode("\r\n", $config->get('config_files'))[$index];
-		$user = $config->get('user');
+		$user = $config->get('system_user');
 		$executable = $config->get('workbench_executable');
+
+		$config_yaml_parsed = yaml_parse_file($workbench_config);
 
 		$yaml_lines = file($workbench_config);
 		$drupal_username = $config->get('drupal_user');
 		$drupal_password = $config->get('drupal_password');
-		
-		$start = -1;
-		for ($i = 0; $i < count($yaml_lines); $i += 1) {
-			if (str_starts_with($yaml_lines[$i], "csv_field_templates:")) {
-				$start = $i;
-				break;
-			}
-			if (str_starts_with($yaml_lines[$i], "username:")) {
-				$yaml_lines[$i] = "username: {$drupal_username}\n";	
-			}
-			if (str_starts_with($yaml_lines[$i], "password:")) {
-				$yaml_lines[$i] = "password: {$drupal_password}\n";	
-			}
-		}
 
 		$node_id = \Drupal::routeMatch()->getParameter("node")->id();
 		$user_id = \Drupal::currentUser()->id();
 
 		if (!$node_id) {
 			\Drupal::logger("Digitalia workbench")->error("Invalid node id, aborting.");
-			\Drupal::messenger->addError("Invalid node id, aborting. Please contact administrators.");
+			\Drupal::messenger()->addError("Invalid node id, aborting. Please contact administrators.");
 			return 1;
 		}
 
-		if ($start != -1) {
-			array_splice($yaml_lines, $start + 1, 0, array(" - parent_id: {$node_id}\n"));
-			array_splice($yaml_lines, $start + 1, 0, array(" - field_member_of: {$node_id}\n"));
-			array_splice($yaml_lines, $start + 1, 0, array(" - uid: {$user_id}\n"));
-		} else {
-			array_push($yaml_lines, "csv_field_templates:\n");
-			array_push($yaml_lines, " - parent_id: {$node_id}\n");
-			array_push($yaml_lines, " - field_member_of: {$node_id}\n");
-			array_push($yaml_lines, " - uid: {$user_id}\n");
+
+		// Add credentials and node info to workbench config
+		if (!$config_yaml_parsed["csv_field_templates"]) {
+			$config_yaml_parsed["csv_field_templates"] = array();
 		}
 
+		array_push($config_yaml_parsed["csv_field_templates"], array("parent_id" => $node_id));
+		array_push($config_yaml_parsed["csv_field_templates"], array("field_member_of" => $node_id));
+		array_push($config_yaml_parsed["csv_field_templates"], array("uid" => $user_id));
+		array_push($config_yaml_parsed["csv_field_templates"], array("field_model" => "Page"));
+		$config_yaml_parsed["username"] = $drupal_username;
+		$config_yaml_parsed["password"] = trim($drupal_password);
+
+
+		// Show first few lines from import csv
+		$import_csv = fopen("{$config_yaml_parsed['input_dir']}/{$config_yaml_parsed['input_csv']}", "r");
+
+		if ($check_only) {
+			\Drupal::messenger()->addStatus("Config excerpt:");
+			for ($i = 0; $i < 5; $i += 1) {
+				\Drupal::messenger()->addStatus(fgets($import_csv));
+			}
+		}
+
+		// Write modified config
 		$filesystem = \Drupal::service('file_system');
-	
 		$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TEST_");
-		$temp_file = fopen($temp_filename, "w");
-
-		foreach($yaml_lines as $line) {
-			fwrite($temp_file, $line);
-		}
-
-		//\Drupal::logger("DEBUG_WORKBENCH")->debug(print_r($yaml_lines, TRUE));
-
-		chmod($temp_filename, 0644);
+		yaml_emit_file($temp_filename, $config_yaml_parsed);
+		chmod($temp_filename, 0640);
 
 		return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
 	}
@@ -175,6 +187,7 @@ class IngestForm extends FormBase
 		}
 
 		$command = "sudo -u {$user} {$executable} --config {$config} {$check} 2>&1";
+		\Drupal::logger("DEBUG_WORKBENCH")->debug($command);
 	
 		$ret = exec($command, $output, $retval);
 

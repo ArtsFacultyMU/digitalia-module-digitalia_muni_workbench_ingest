@@ -52,7 +52,8 @@ class ModuleConfigurationForm extends ConfigFormBase
 		$form["drupal_password"] = [
 			"#type" => "password",
 			"#title" => $this->t("Workbench Drupal user password"),
-			//"#description" => $this->t("The user under which command is executed (e.g. www-data) MUST be able to sudo to specified system user without password."),
+			"#description" => $this->t("Key override used. Edit the key."),
+			"#disabled" => true,
 			"#default_value" => $config->get("drupal_password"),
 		];
 

@@ -65,11 +65,23 @@ class IngestProgress extends ResourceBase
 		if ($fsize == 0) {
 			$fsize = 1;
 		}
-		$percentage = floor((float) fread($progress_file, $fsize));
+
+    $raw_data = fread($progress_file, $fsize);
+    $data = json_decode($raw_data, TRUE);
+
+    \Drupal::logger("DEBUG_GET_REST")->debug($fsize);
+    \Drupal::logger("DEBUG_GET_REST")->debug(print_r($raw_data, TRUE));
+    \Drupal::logger("DEBUG_GET_REST")->debug(print_r($data, TRUE));
 		fclose($progress_file);
-		$result = [
-				"percentage" => $percentage,
-		];
+
+    $result = [];
+
+    if ($data) {
+		  $result = [
+		  		"percentage" => $data["percentage"],
+		  		"status" => $data["status"],
+		  ];
+    }
 
 		$response = new ResourceResponse($result);
 		$response->addCacheableDependency($result);
@@ -80,14 +92,17 @@ class IngestProgress extends ResourceBase
 	public function post($data)
 	{
 		$percentage = $data["percentage"];
+		$status = $data["status"];
+    
+    $data["percentage"] = floor((float) $data["percentage"]);
 
 		$progress_file = fopen($this->progress_filename, 'w');
-		fwrite($progress_file, $percentage);
+		fwrite($progress_file, json_encode($data));
 		fclose($progress_file);
 
-		$progress_file = fopen($this->progress_filename, 'r');
-		$percentage = floor(fread($progress_file, filesize($this->progress_filename)));
-		fclose($progress_file);
+		//$progress_file = fopen($this->progress_filename, 'r');
+		//$percentage = floor(fread($progress_file, filesize($this->progress_filename)));
+		//fclose($progress_file);
 
 		return new ModifiedResourceResponse([], 200);
 	}

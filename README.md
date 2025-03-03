@@ -61,7 +61,9 @@ csv_value_templates:
 ```
 
 ## Time to check input configuration
+
 | Number of nodes | time in seconds |
+| --------------- | --------------- |
 | 499             |         90      |
 | 1727            |        292      |
 | 2000            |        328      |

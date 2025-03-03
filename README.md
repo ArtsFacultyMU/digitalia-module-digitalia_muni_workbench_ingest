@@ -27,8 +27,12 @@ Absolute path to workbench executable.
 ### Paths to workbench configuration files
 List of absolute paths to configuration files, one per line. First one is considered default.
 
-## Block
-Block `Ingest items` must be placed.
+## Blocks
+### Ingest items
+Contains controls for data ingest.
+
+### Status of current ingest
+Optional block displaying progress of current ingest.
 
 ## Workbench config file
 Example config for workbench:

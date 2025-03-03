@@ -77,7 +77,7 @@ class IngestProgress extends ResourceBase
 
 		$result = [];
 
-		if (dataIsValid($data)) {
+		if ($this->dataIsValid($data)) {
 			$result = [
 					"percentage" => $data["percentage"],
 					"status" => $data["status"],
@@ -92,7 +92,7 @@ class IngestProgress extends ResourceBase
 
 	public function post($data)
 	{
-		if (!dataIsValid($data)) {
+		if (!$this->dataIsValid($data)) {
 			return new ModifiedResourceResponse([], 200);
 		}
 
@@ -112,7 +112,6 @@ class IngestProgress extends ResourceBase
 			return new ModifiedResourceResponse([], 200);
 		}
 
-		\Drupal::logger("")->error("Could not write data to '" . $this->progress_filename . "'");
 		return new ModifiedResourceResponse([], 500);
 	}
 

@@ -170,7 +170,7 @@ class IngestForm extends FormBase
 
 		// Write modified config
 		$filesystem = \Drupal::service('file_system');
-		$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TEST_");
+		$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TMP_CONFIG_");
 		yaml_emit_file($temp_filename, $config_yaml_parsed);
 		chmod($temp_filename, 0640);
 
@@ -187,15 +187,8 @@ class IngestForm extends FormBase
 		}
 
 		$command = "sudo -u {$user} {$executable} --config {$config} {$check} 2>&1";
-		\Drupal::logger("DEBUG_WORKBENCH")->debug($command);
-	
 		$ret = exec($command, $output, $retval);
 
 		return $retval;
-	}
-	
-	private function addParent()
-	{
-
 	}
 }

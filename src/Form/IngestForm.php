@@ -150,7 +150,6 @@ class IngestForm extends FormBase
 			$config_yaml_parsed["csv_field_templates"] = array();
 		}
 
-		array_push($config_yaml_parsed["csv_field_templates"], array("parent_id" => $node_id));
 		array_push($config_yaml_parsed["csv_field_templates"], array("field_member_of" => $node_id));
 		array_push($config_yaml_parsed["csv_field_templates"], array("uid" => $user_id));
 		array_push($config_yaml_parsed["csv_field_templates"], array("field_model" => "Page"));
@@ -165,6 +164,11 @@ class IngestForm extends FormBase
 			\Drupal::messenger()->addStatus("Config excerpt:");
 			for ($i = 0; $i < 5; $i += 1) {
 				\Drupal::messenger()->addStatus(fgets($import_csv));
+			}
+
+			if (!$this->checkLineCount($import_csv)) {
+				\Drupal::logger("Digitalia workbench")->warning("Line count mismatch in 'import.csv'");
+				\Drupal::messenger()->addWarning("Line count mismatch, please check 'import.csv'");
 			}
 		}
 
@@ -190,5 +194,33 @@ class IngestForm extends FormBase
 		$ret = exec($command, $output, $retval);
 
 		return $retval;
+	}
+
+	private function checkLineCount($file_handle)
+	{
+		rewind($file_handle);
+		$line_count = 0;
+		$last_line = [];
+
+		$header = fgetcsv($file_handle, null, ";");
+		rewind($file_handle);
+
+		while (!feof($file_handle)) {
+			$tmp_last_line = fgetcsv($file_handle, null, ";");
+
+			if ($tmp_last_line) {
+				$last_line = $tmp_last_line;
+				$line_count += 1;
+			}
+
+			if ($tmp_last_line && sizeof($tmp_last_line) != sizeof($header)) {
+				\Drupal::messenger()->addWarning("Empty or incomplete lines detected in 'import.csv' (line {$line_count}).");
+				\Drupal::logger("Digitalia workbench")->warning("Empty or incomplete lines detected in 'import.csv' (line {$line_count}).");
+			}
+		}
+
+
+		// Take header into consideration
+		return $line_count == ((int) $last_line[0] + 1);
 	}
 }

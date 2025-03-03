@@ -41,9 +41,7 @@ class IngestProgress extends ResourceBase
 		parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger);
 
 		$filesystem = \Drupal::service('file_system');
-		$this->progress_filename = $filesystem->realpath("temporary://") . "/progress.txt";
-		\Drupal::logger("DEBUG_CONSTRUCT")->debug($this->progress_filename);
-
+		$this->progress_filename = $filesystem->realpath("temporary://") . "/progress.json";
 		touch($this->progress_filename);
 	}
 
@@ -59,29 +57,32 @@ class IngestProgress extends ResourceBase
 
 	public function get()
 	{
-		\Drupal::logger("GET_TEST")->debug("GET endpoint used");
+		$data = [];
+		$fsize = 0;
+
 		$progress_file = fopen($this->progress_filename, 'r');
-		$fsize = filesize($this->progress_filename);
-		if ($fsize == 0) {
-			$fsize = 1;
+
+		if ($progress_file) {
+			$fsize = filesize($this->progress_filename);
 		}
 
-    $raw_data = fread($progress_file, $fsize);
-    $data = json_decode($raw_data, TRUE);
+		if ($fsize > 0) {
+			$raw_data = fread($progress_file, $fsize);
+			$data = json_decode($raw_data, TRUE);
+		}
 
-    \Drupal::logger("DEBUG_GET_REST")->debug($fsize);
-    \Drupal::logger("DEBUG_GET_REST")->debug(print_r($raw_data, TRUE));
-    \Drupal::logger("DEBUG_GET_REST")->debug(print_r($data, TRUE));
-		fclose($progress_file);
+		if ($progress_file) {
+			fclose($progress_file);
+		} 
 
-    $result = [];
+		$result = [];
 
-    if ($data) {
-		  $result = [
-		  		"percentage" => $data["percentage"],
-		  		"status" => $data["status"],
-		  ];
-    }
+		if (dataIsValid($data)) {
+			$result = [
+					"percentage" => $data["percentage"],
+					"status" => $data["status"],
+			];
+		}
 
 		$response = new ResourceResponse($result);
 		$response->addCacheableDependency($result);
@@ -91,19 +92,32 @@ class IngestProgress extends ResourceBase
 
 	public function post($data)
 	{
-		$percentage = $data["percentage"];
-		$status = $data["status"];
-    
-    $data["percentage"] = floor((float) $data["percentage"]);
+		if (!dataIsValid($data)) {
+			return new ModifiedResourceResponse([], 200);
+		}
+
+		$data["percentage"] = floor((float) $data["percentage"]);
 
 		$progress_file = fopen($this->progress_filename, 'w');
-		fwrite($progress_file, json_encode($data));
+		$write_result = false;
+
+		if (!$progress_file) {
+			return new ModifiedResourceResponse([], 500);
+		}
+
+		$write_result = fwrite($progress_file, json_encode($data));
 		fclose($progress_file);
 
-		//$progress_file = fopen($this->progress_filename, 'r');
-		//$percentage = floor(fread($progress_file, filesize($this->progress_filename)));
-		//fclose($progress_file);
+		if ($write_result) {
+			return new ModifiedResourceResponse([], 200);
+		}
 
-		return new ModifiedResourceResponse([], 200);
+		\Drupal::logger("")->error("Could not write data to '" . $this->progress_filename . "'");
+		return new ModifiedResourceResponse([], 500);
+	}
+
+	private function dataIsValid($data)
+	{
+		return (isset($data["percentage"]) && isset($data["status"]));
 	}
 }

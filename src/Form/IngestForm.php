@@ -166,7 +166,7 @@ class IngestForm extends FormBase
 				\Drupal::messenger()->addStatus(fgets($import_csv));
 			}
 
-			if (!$this->checkLineCount($import_csv)) {
+			if (!$this->checkLineCount($import_csv, $config_yaml_parsed['delimiter'])) {
 				\Drupal::logger("Digitalia workbench")->warning("Line count mismatch in 'import.csv'");
 				\Drupal::messenger()->addWarning("Line count mismatch, please check 'import.csv'");
 			}
@@ -196,17 +196,17 @@ class IngestForm extends FormBase
 		return $retval;
 	}
 
-	private function checkLineCount($file_handle)
+	private function checkLineCount($file_handle, $delimiter)
 	{
 		rewind($file_handle);
 		$line_count = 0;
 		$last_line = [];
 
-		$header = fgetcsv($file_handle, null, ";");
+		$header = fgetcsv($file_handle, null, $delimiter);
 		rewind($file_handle);
 
 		while (!feof($file_handle)) {
-			$tmp_last_line = fgetcsv($file_handle, null, ";");
+			$tmp_last_line = fgetcsv($file_handle, null, $delimiter);
 
 			if ($tmp_last_line) {
 				$last_line = $tmp_last_line;

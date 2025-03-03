@@ -2,12 +2,12 @@ This module serves to run specified Islandora Workbench scripts from web interfa
 Currently tested with create operation.
 
 ## Basic operation
-User ID and current node ID are used to fill Author and Member of nodes respectively.
+User ID and current node ID are used to fill Author and Member of fields respectively.
 
 ## Prerequisites
 - sudo with config allowing apache user to execute workbench as a normal system user
-`<apache user> ALL=(<system user>) NOPASSWD: /path/to/workbench/executable`
-`www-data ALL=(islandora) NOPASSWD: /home/islandora/islandora_workbench/workbench`
+- `<apache user> ALL=(<system user>) NOPASSWD: /path/to/workbench/executable`
+- `www-data ALL=(islandora) NOPASSWD: /home/islandora/islandora_workbench/workbench`
 
 ## Configuration
 Configuration is available at Configuration -> System -> Development -> Workbench Ingest Settings `/admin/config/system/digitalia_muni_workbench_ingest`

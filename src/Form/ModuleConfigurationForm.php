@@ -35,33 +35,34 @@ class ModuleConfigurationForm extends ConfigFormBase
 	{
 		$config = $this->config("digitalia_muni_workbench_ingest.settings");
 
-		$form["system_user"] = [
-			"#type" => "textfield",
-			"#title" => $this->t("Workbench system user"),
-			"#description" => $this->t("The user under which command is executed (e.g. www-data) MUST be able to sudo to specified system user without password."),
-			"#default_value" => $config->get("system_user"),
-		];
+		// 'workbench' by default
+		//$form["drupal_user"] = [
+		//	"#type" => "textfield",
+		//	"#title" => $this->t("Workbench Drupal user"),
+		//	//"#description" => $this->t("The user for"),
+		//	"#default_value" => $config->get("drupal_user"),
+		//];
 
-		$form["drupal_user"] = [
-			"#type" => "textfield",
-			"#title" => $this->t("Workbench Drupal user"),
-			//"#description" => $this->t("The user for"),
-			"#default_value" => $config->get("drupal_user"),
-		];
+		//$form["drupal_password"] = [
+		//	"#type" => "password",
+		//	"#title" => $this->t("Workbench Drupal user password"),
+		//	"#description" => $this->t("Key override used. Edit the key."),
+		//	"#disabled" => true,
+		//	"#default_value" => $config->get("drupal_password"),
+		//];
 
-		$form["drupal_password"] = [
-			"#type" => "password",
-			"#title" => $this->t("Workbench Drupal user password"),
-			"#description" => $this->t("Key override used. Edit the key."),
-			"#disabled" => true,
-			"#default_value" => $config->get("drupal_password"),
-		];
+		//$form["workbench_executable"] = [
+		//	"#type" => "textfield",
+		//	"#title" => $this->t("Path to Workbench executable."),
+		//	"#description" => $this->t("Absolute path."),
+		//	"#default_value" => $config->get("workbench_executable"),
+		//];
 
-		$form["workbench_executable"] = [
-			"#type" => "textfield",
-			"#title" => $this->t("Path to Workbench executable."),
-			"#description" => $this->t("Absolute path."),
-			"#default_value" => $config->get("workbench_executable"),
+		$form["workbench_url"] = [
+			"#type" => "string",
+			"#title" => $this->t("URL of Workbench container."),
+			//"#description" => $this->t("One file per line. First is considered default."),
+			"#default_value" => $config->get("workbench_url"),
 		];
 
 		$form["config_files"] = [

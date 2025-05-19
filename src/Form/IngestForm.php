@@ -26,14 +26,14 @@ class IngestForm extends FormBase
 		$config = $this->config('digitalia_muni_workbench_ingest.settings');
 
 		$form['actions']['#type'] = 'actions';
-		$form['actions']['check'] = [
-			'#type' => 'button',
-			'#value' => $this->t('Check config'),
-			'#ajax' => [
-				'callback' => '::workbenchCheckCallback',
-				'wrapper' => 'edit-output',
-			],
-		];
+		//$form['actions']['check'] = [
+		//	'#type' => 'button',
+		//	'#value' => $this->t('Check config'),
+		//	'#ajax' => [
+		//		'callback' => '::workbenchCheckCallback',
+		//		'wrapper' => 'edit-output',
+		//	],
+		//];
 		$form['actions']['ingest'] = [
 			'#type' => 'button',
 			'#value' => $this->t('Ingest'),
@@ -66,18 +66,6 @@ class IngestForm extends FormBase
 				'#options' => $exploded,
 			];
 		}
-
-		//$form['start_row'] = [
-		//	'#type' => 'textfield',
-		//	'#title' => 'Start row',
-		//	'#description' => 'Leave empty to ignore',
-		//];
-
-		//$form['stop_row'] = [
-		//	'#type' => 'textfield',
-		//	'#title' => 'Stop row',
-		//	'#description' => 'Leave empty to ignore',
-		//];
 		
 		return $form;
 	}
@@ -126,57 +114,57 @@ class IngestForm extends FormBase
 		}
 
 		$workbench_config = explode("\r\n", $config->get('config_files'))[$index];
-		$user = $config->get('system_user');
-		$executable = $config->get('workbench_executable');
+		//$user = $config->get('system_user');
+		//$executable = $config->get('workbench_executable');
 
-		$config_yaml_parsed = yaml_parse_file($workbench_config);
+		//$config_yaml_parsed = yaml_parse_file($workbench_config);
 
-		$yaml_lines = file($workbench_config);
-		$drupal_username = $config->get('drupal_user');
-		$drupal_password = $config->get('drupal_password');
+		//$yaml_lines = file($workbench_config);
+		//$drupal_username = $config->get('drupal_user');
+		//$drupal_password = $config->get('drupal_password');
 
-		$node_id = \Drupal::routeMatch()->getParameter("node")->id();
+		//$node_id = \Drupal::routeMatch()->getParameter("node")->id();
 		$user_id = \Drupal::currentUser()->id();
 
-		if (!$node_id) {
-			\Drupal::logger("Digitalia workbench")->error("Invalid node id, aborting.");
-			\Drupal::messenger()->addError("Invalid node id, aborting. Please contact administrators.");
-			return 1;
-		}
+		//if (!$node_id) {
+		//	\Drupal::logger("Digitalia workbench")->error("Invalid node id, aborting.");
+		//	\Drupal::messenger()->addError("Invalid node id, aborting. Please contact administrators.");
+		//	return 1;
+		//}
 
 
 		// Add credentials and node info to workbench config
-		if (!$config_yaml_parsed["csv_field_templates"]) {
-			$config_yaml_parsed["csv_field_templates"] = array();
-		}
+		//if (!$config_yaml_parsed["csv_field_templates"]) {
+		//	$config_yaml_parsed["csv_field_templates"] = array();
+		//}
 
-		array_push($config_yaml_parsed["csv_field_templates"], array("field_member_of" => $node_id));
-		array_push($config_yaml_parsed["csv_field_templates"], array("uid" => $user_id));
-		array_push($config_yaml_parsed["csv_field_templates"], array("field_model" => "Page"));
-		$config_yaml_parsed["username"] = $drupal_username;
-		$config_yaml_parsed["password"] = trim($drupal_password);
+		//array_push($config_yaml_parsed["csv_field_templates"], array("field_member_of" => $node_id));
+		//array_push($config_yaml_parsed["csv_field_templates"], array("uid" => $user_id));
+		//array_push($config_yaml_parsed["csv_field_templates"], array("field_model" => "Page"));
+		//$config_yaml_parsed["username"] = $drupal_username;
+		//$config_yaml_parsed["password"] = trim($drupal_password);
 
 
 		// Show first few lines from import csv
-		$import_csv = fopen("{$config_yaml_parsed['input_dir']}/{$config_yaml_parsed['input_csv']}", "r");
+		//$import_csv = fopen("{$config_yaml_parsed['input_dir']}/{$config_yaml_parsed['input_csv']}", "r");
 
-		if ($check_only) {
-			\Drupal::messenger()->addStatus("Config excerpt:");
-			for ($i = 0; $i < 5; $i += 1) {
-				\Drupal::messenger()->addStatus(fgets($import_csv));
-			}
+		//if ($check_only) {
+		//	\Drupal::messenger()->addStatus("Config excerpt:");
+		//	for ($i = 0; $i < 5; $i += 1) {
+		//		\Drupal::messenger()->addStatus(fgets($import_csv));
+		//	}
 
-			if (!$this->checkLineCount($import_csv, $config_yaml_parsed['delimiter'])) {
-				\Drupal::logger("Digitalia workbench")->warning("Line count mismatch in 'import.csv'");
-				\Drupal::messenger()->addWarning("Line count mismatch, please check 'import.csv'");
-			}
-		}
+		//	if (!$this->checkLineCount($import_csv, $config_yaml_parsed['delimiter'])) {
+		//		\Drupal::logger("Digitalia workbench")->warning("Line count mismatch in 'import.csv'");
+		//		\Drupal::messenger()->addWarning("Line count mismatch, please check 'import.csv'");
+		//	}
+		//}
 
 		// Write modified config
-		$filesystem = \Drupal::service('file_system');
-		$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TMP_CONFIG_");
-		yaml_emit_file($temp_filename, $config_yaml_parsed);
-		chmod($temp_filename, 0640);
+		//$filesystem = \Drupal::service('file_system');
+		//$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TMP_CONFIG_");
+		//yaml_emit_file($temp_filename, $config_yaml_parsed);
+		//chmod($temp_filename, 0640);
 
 		return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
 	}

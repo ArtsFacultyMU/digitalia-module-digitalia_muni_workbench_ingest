@@ -59,7 +59,7 @@ class ModuleConfigurationForm extends ConfigFormBase
 		//];
 
 		$form["workbench_url"] = [
-			"#type" => "string",
+			"#type" => "textfield",
 			"#title" => $this->t("URL of Workbench container."),
 			//"#description" => $this->t("One file per line. First is considered default."),
 			"#default_value" => $config->get("workbench_url"),

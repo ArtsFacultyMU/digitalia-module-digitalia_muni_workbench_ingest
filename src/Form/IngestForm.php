@@ -166,7 +166,12 @@ class IngestForm extends FormBase
 		//yaml_emit_file($temp_filename, $config_yaml_parsed);
 		//chmod($temp_filename, 0640);
 
-		return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
+		$client_factory = \Drupal::service('http_client_factory');
+		$client = $client_factory->fromOptions(['verify' => FALSE]);
+
+		$client->get('http://workbench/api/execute.php');
+
+		//return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
 	}
 
 	private function workbenchStart($user, $executable, $config, &$ret, $check_only)

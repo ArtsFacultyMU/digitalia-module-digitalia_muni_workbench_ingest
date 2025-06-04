@@ -2,14 +2,17 @@
 
 namespace Drupal\digitalia_muni_workbench_ingest\Form;
 
+use Drupal\file\Entity\File;
 use Drupal\Core\Form\FormBase;
 use Drupal\Core\Form\FormStateInterface;
-use Drupal\node\Entity\Node;
-use Drupal\media\Entity\Media;
 use Drupal\Core\Messenger\MessengerInterface;
+use Drupal\media\Entity\Media;
+use Drupal\node\Entity\Node;
 
 class IngestForm extends FormBase
 {
+	protected $timestamp;
+
 	/**
 	 * {@inheritdoc}
 	 */
@@ -34,6 +37,12 @@ class IngestForm extends FormBase
 		//		'wrapper' => 'edit-output',
 		//	],
 		//];
+		if (is_null($this->timestamp)) {
+			$this->timestamp = time();
+		}
+		$user_id = \Drupal::currentUser()->id();
+		$media_id = \Drupal::routeMatch()->getRawParameter("media");
+		\Drupal::logger("DEBUG_TIMESTAMP")->debug($this->timestamp);
 		$form['actions']['ingest'] = [
 			'#type' => 'button',
 			'#value' => $this->t('Ingest'),
@@ -41,11 +50,17 @@ class IngestForm extends FormBase
 				'callback' => '::submitForm',
 				'wrapper' => 'edit-output',
 				'progress' => [
-				  'type' => 'bar',
-				  'message' => 'Importing...',
-				  'url' => '/digitalia_muni_workbench_ingest/ingest_progress',
-				  'interval' => '1000',
-        ],
+					'type' => 'bar',
+					'message' => 'Importing...',
+					'url' => "/digitalia_muni_workbench_ingest/ingest_progress/{$user_id}/{$media_id}",
+					'interval' => '1000',
+        			],
+				//'progress' => [
+				//  'type' => 'bar',
+				//  'message' => 'Importing...',
+				//  'url' => '/digitalia_muni_workbench_ingest/ingest_progress',
+				//  'interval' => '1000',
+        			//],
 			],
 		];
 
@@ -74,7 +89,7 @@ class IngestForm extends FormBase
 
 	public function submitForm(array &$form, FormStateInterface $form_state)
 	{
-		$retval = $this->workbenchWrapper($form_state, false, $ret);
+		$retval = $this->workbenchWrapper($form_state, false, $ret, $this->timestamp);
 
 		if ($retval == 0) {
 			\Drupal::messenger()->addStatus("Ingest successful! Reload the page to see results.");
@@ -87,23 +102,11 @@ class IngestForm extends FormBase
 		return ['#markup' => $check_result];
 	}
 
-	public function workbenchCheckCallback(array &$form, FormStateInterface $form_state)
+	private function workbenchWrapper($form_state, $check_only, &$ret, $timestamp)
 	{
-		$retval = $this->workbenchWrapper($form_state, true, $ret);
-
-		if ($retval == 0) {
-			\Drupal::messenger()->addStatus($ret);
-		} else {
-			\Drupal::messenger()->addError($ret);
-		}
-
-		$check_result = "<div id='edit-output'></div>";
-
-		return ['#markup' => $check_result];
-	}
-
-	private function workbenchWrapper($form_state, $check_only, &$ret)
-	{
+		// Timestamp cannot be used, because there is no way to pass the timestamp from initial
+		// form creation to callback function (when the callback is executed, the form class is
+		// instantiated again)
 		$config = $this->config('digitalia_muni_workbench_ingest.settings');
 
 		$form_index = $form_state->getValue("config");
@@ -113,65 +116,51 @@ class IngestForm extends FormBase
 			$index = $form_index;
 		}
 
-		$workbench_config = explode("\r\n", $config->get('config_files'))[$index];
-		//$user = $config->get('system_user');
-		//$executable = $config->get('workbench_executable');
+		//$workbench_config = explode("\r\n", $config->get('config_files'))[$index];
 
-		//$config_yaml_parsed = yaml_parse_file($workbench_config);
-
-		//$yaml_lines = file($workbench_config);
-		//$drupal_username = $config->get('drupal_user');
-		//$drupal_password = $config->get('drupal_password');
-
-		//$node_id = \Drupal::routeMatch()->getParameter("node")->id();
 		$user_id = \Drupal::currentUser()->id();
+		$media_id = \Drupal::routeMatch()->getRawParameter("media");
+		\Drupal::logger("DEBUG_WORKBENCH")->debug(print_r($media_id, TRUE));
 
-		//if (!$node_id) {
-		//	\Drupal::logger("Digitalia workbench")->error("Invalid node id, aborting.");
-		//	\Drupal::messenger()->addError("Invalid node id, aborting. Please contact administrators.");
-		//	return 1;
-		//}
-
-
-		// Add credentials and node info to workbench config
-		//if (!$config_yaml_parsed["csv_field_templates"]) {
-		//	$config_yaml_parsed["csv_field_templates"] = array();
-		//}
-
-		//array_push($config_yaml_parsed["csv_field_templates"], array("field_member_of" => $node_id));
-		//array_push($config_yaml_parsed["csv_field_templates"], array("uid" => $user_id));
-		//array_push($config_yaml_parsed["csv_field_templates"], array("field_model" => "Page"));
-		//$config_yaml_parsed["username"] = $drupal_username;
-		//$config_yaml_parsed["password"] = trim($drupal_password);
-
-
-		// Show first few lines from import csv
-		//$import_csv = fopen("{$config_yaml_parsed['input_dir']}/{$config_yaml_parsed['input_csv']}", "r");
-
-		//if ($check_only) {
-		//	\Drupal::messenger()->addStatus("Config excerpt:");
-		//	for ($i = 0; $i < 5; $i += 1) {
-		//		\Drupal::messenger()->addStatus(fgets($import_csv));
-		//	}
-
-		//	if (!$this->checkLineCount($import_csv, $config_yaml_parsed['delimiter'])) {
-		//		\Drupal::logger("Digitalia workbench")->warning("Line count mismatch in 'import.csv'");
-		//		\Drupal::messenger()->addWarning("Line count mismatch, please check 'import.csv'");
-		//	}
-		//}
-
-		// Write modified config
-		//$filesystem = \Drupal::service('file_system');
-		//$temp_filename = tempnam($filesystem->realpath("tmp://"), "WORKBENCH_TMP_CONFIG_");
-		//yaml_emit_file($temp_filename, $config_yaml_parsed);
-		//chmod($temp_filename, 0640);
 
 		$client_factory = \Drupal::service('http_client_factory');
 		$client = $client_factory->fromOptions(['verify' => FALSE]);
+		//$timestamp = time();
 
-		$client->get('http://workbench/api/execute.php');
+		\Drupal::logger("DEBUG_WORKBENCH")->debug("{$timestamp}");
+		//$client->get('http://workbench/index.php');
+		$media = Media::load($media_id);
+		$fid = $media->getSource()->getSourceFieldValue($media);
+		$file = File::load($fid);
+		$file_uri = $file->getFileUri();
+		$external_file_uri = preg_replace('/^fedora:\/\/(.*)/', '/_flysystem/fedora/${1}', $file_uri);
+		\Drupal::logger("DEBUG_WORKBENCH")->debug("{$external_file_uri}");
+		try {
+			$ret = $client->post('localhost:8080/api/execute.php', [
+				'form_params' => [
+					'user_id' => $user_id,
+					'workbench_config' => 'workbench_base.yml',
+					'media_url' => $external_file_uri,
+					'media_id' => $media_id,
+					'timestamp' => $timestamp,
+					'check' => '0',
+				],
+				'timeout' => 0
+			]);
+		} catch (Exception $e) {
+			\Drupal::logger("DEBUG_WORKBENCH")->debug("POST request execption!");
+			\Drupal::logger("DEBUG_WORKBENCH")->debug($e->getMessage());
+		}
 
-		//return $this->workbenchStart($user, $executable, $temp_filename, $ret, $check_only);
+		\Drupal::logger("DEBUG_WORKBENCH")->debug("POST POST request");
+		//\Drupal::logger("DEBUG_WORKBENCH")->debug(print_r($ret->getBody()->getContents(), TRUE));
+		\Drupal::logger("DEBUG_WORKBENCH")->debug(print_r($ret->getBody()->getContents(), TRUE));
+
+		if ($ret->getStatusCode() == 200) {
+			return 0;
+		} else {
+			return $ret->getStatusCode();
+		}
 	}
 
 	private function workbenchStart($user, $executable, $config, &$ret, $check_only)

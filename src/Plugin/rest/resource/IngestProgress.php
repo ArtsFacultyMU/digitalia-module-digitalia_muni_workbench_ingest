@@ -21,15 +21,12 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  *   id = "ingest_progress",
  *   label = @Translation("Ingest progress endpoint"),
  *   uri_paths = {
- *     "canonical" = "/digitalia_muni_workbench_ingest/ingest_progress",
- *     "create" = "/digitalia_muni_workbench_ingest/ingest_progress"
+ *     "canonical" = "/digitalia_muni_workbench_ingest/ingest_progress/{user_id}/{media_id}",
  *   }
  * )
  */
 class IngestProgress extends ResourceBase
 {
-	protected $progress_filename;
-
 	public function __construct(
 				array $configuration,
 				$plugin_id,
@@ -39,84 +36,35 @@ class IngestProgress extends ResourceBase
 				)
 	{
 		parent::__construct($configuration, $plugin_id, $plugin_definition, $serializer_formats, $logger);
-
-		$filesystem = \Drupal::service('file_system');
-		$this->progress_filename = $filesystem->realpath("temporary://") . "/progress.json";
-		touch($this->progress_filename);
 	}
 
-	/**
-	 *
-	 */
-	public static function create(ContainerInterface $container, array $configuration, $plugin_id, $plugin_definition)
+	public function get($user_id, $media_id)
 	{
-		$instance = parent::create($container, $configuration, $plugin_id, $plugin_definition);
+		// dumb way to work around mixed http(s) on single page
+		$client_factory = \Drupal::service('http_client_factory');
+		$client = $client_factory->fromOptions(['verify' => FALSE]);
+		//\Drupal::logger("DEBUG_REST")->debug("media_id: {$media_id}\nuser_id: {$user_id}");
 
-		return $instance;
-	}
+		$result = [
+			"percentage" => "0",
+		];
 
-	public function get()
-	{
-		$data = [];
-		$fsize = 0;
-
-		$progress_file = fopen($this->progress_filename, 'r');
-
-		if ($progress_file) {
-			$fsize = filesize($this->progress_filename);
-		}
-
-		if ($fsize > 0) {
-			$raw_data = fread($progress_file, $fsize);
-			$data = json_decode($raw_data, TRUE);
-		}
-
-		if ($progress_file) {
-			fclose($progress_file);
-		} 
-
-		$result = [];
-
-		if ($this->dataIsValid($data)) {
+		$ret;
+		try {
+			$ret = $client->get("localhost:8080/api/status.php?media_id={$media_id}&user_id={$user_id}");
 			$result = [
-					"percentage" => $data["percentage"],
-					"status" => $data["status"],
+				"percentage" => $ret->getBody()->getContents(),
 			];
+		} catch (Exception $e) {
+			\Drupal::logger("DEBUG_WORKBENCH")->debug($e->getMessage());
 		}
+
+
+		//Drupal::logger("DEBUG_REST")->debug(print_r($result, TRUE));
 
 		$response = new ResourceResponse($result);
 		$response->addCacheableDependency($result);
 
 		return $response;
-	}
-
-	public function post($data)
-	{
-		if (!$this->dataIsValid($data)) {
-			return new ModifiedResourceResponse([], 200);
-		}
-
-		$data["percentage"] = floor((float) $data["percentage"]);
-
-		$progress_file = fopen($this->progress_filename, 'w');
-		$write_result = false;
-
-		if (!$progress_file) {
-			return new ModifiedResourceResponse([], 500);
-		}
-
-		$write_result = fwrite($progress_file, json_encode($data));
-		fclose($progress_file);
-
-		if ($write_result) {
-			return new ModifiedResourceResponse([], 200);
-		}
-
-		return new ModifiedResourceResponse([], 500);
-	}
-
-	private function dataIsValid($data)
-	{
-		return (isset($data["percentage"]) && isset($data["status"]));
 	}
 }

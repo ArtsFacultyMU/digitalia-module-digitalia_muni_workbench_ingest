@@ -43,7 +43,6 @@ class IngestProgress extends ResourceBase
 		// dumb way to work around mixed http(s) on single page
 		$client_factory = \Drupal::service('http_client_factory');
 		$client = $client_factory->fromOptions(['verify' => FALSE]);
-		//\Drupal::logger("DEBUG_REST")->debug("media_id: {$media_id}\nuser_id: {$user_id}");
 
 		$result = [
 			"percentage" => "0",
@@ -51,16 +50,14 @@ class IngestProgress extends ResourceBase
 
 		$ret;
 		try {
-			$ret = $client->get("localhost:8080/api/status.php?media_id={$media_id}&user_id={$user_id}");
+			$ret = $client->get("workbench:8080/api/status.php?media_id={$media_id}&user_id={$user_id}");
 			$result = [
 				"percentage" => $ret->getBody()->getContents(),
 			];
 		} catch (Exception $e) {
-			\Drupal::logger("DEBUG_WORKBENCH")->debug($e->getMessage());
+			\Drupal::logger("workbench")->error($e->getMessage());
 		}
 
-
-		//Drupal::logger("DEBUG_REST")->debug(print_r($result, TRUE));
 
 		$response = new ResourceResponse($result);
 		$response->addCacheableDependency($result);

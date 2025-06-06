@@ -58,19 +58,25 @@ class ModuleConfigurationForm extends ConfigFormBase
 		//	"#default_value" => $config->get("workbench_executable"),
 		//];
 
-		$form["workbench_url"] = [
+		$form["workbench_execute"] = [
 			"#type" => "textfield",
-			"#title" => $this->t("URL of Workbench container."),
+			"#title" => $this->t("URL of Workbench execute endpoint."),
 			//"#description" => $this->t("One file per line. First is considered default."),
-			"#default_value" => $config->get("workbench_url"),
+			"#default_value" => $config->get("workbench_execute"),
+		];
+		$form["workbench_status"] = [
+			"#type" => "textfield",
+			"#title" => $this->t("URL of Workbench status endpoint."),
+			//"#description" => $this->t("One file per line. First is considered default."),
+			"#default_value" => $config->get("workbench_status"),
 		];
 
-		$form["config_files"] = [
-			"#type" => "textarea",
-			"#title" => $this->t("Paths to Workbench configuration files."),
-			"#description" => $this->t("One file per line. First is considered default."),
-			"#default_value" => $config->get("config_files"),
-		];
+		//$form["config_files"] = [
+		//	"#type" => "textarea",
+		//	"#title" => $this->t("Paths to Workbench configuration files."),
+		//	"#description" => $this->t("One file per line. First is considered default."),
+		//	"#default_value" => $config->get("config_files"),
+		//];
 
 
 		return parent::buildForm($form, $form_state);

@@ -19,6 +19,7 @@ class IngestForm extends FormBase
 		return 'digitalia_muni_workbench_ingest_form';
 	}
 
+	// TODO: check ingest status and disable button, if not in state "not yet ingested"
 	/**
 	 * {@inheritdoc}
 	 */
@@ -69,6 +70,8 @@ class IngestForm extends FormBase
 
 	public function validateForm(array &$form, FormStateInterface $form_state) {}
 
+	// TODO: set ingest status to "in progress"
+	//  
 	public function submitForm(array &$form, FormStateInterface $form_state)
 	{
 		$retval = $this->workbenchWrapper($form_state, false, $ret);
